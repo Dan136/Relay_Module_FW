@@ -7,7 +7,6 @@
 #include "lwip_netconf.h"
 #include "wifi_conf.h"
 #include "netif.h"
-#include "example_socket_tcp_trx.h"
 #include <platform/platform_stdlib.h>
 #include "relay_wifi.h"
 
@@ -30,14 +29,14 @@ static rtw_result_t scan_result_handler(rtw_scan_handler_result_t* malloced_scan
 
 void main(void)
 {
-	printf("\nInitializing Sensor Board Firmware...\n\n");
+	printf("\nInitializing Relay Board Firmware...\n\n");
 	//Initialize console
 	console_init();
 	//Initialize LwIP
 	LwIP_Init();
 	//Initialize wifi manager
 	wifi_manager_init();
-	if(xTaskCreate(start_sensor_wifi, ((const char*)"Sensor WiFI"), STACKSIZE, NULL, tskIDLE_PRIORITY + 3 + PRIORITIE_OFFSET, NULL) != pdPASS)
+	if(xTaskCreate(start_relay_wifi, ((const char*)"Sensor WiFI"), STACKSIZE, NULL, tskIDLE_PRIORITY + 3 + PRIORITIE_OFFSET, NULL) != pdPASS)
 		printf("\n\r%s xTaskCreate(start_sensor_wifi) failed", __FUNCTION__);
 	printf("Starting TCP Thread");
 	example_socket_tcp_trx_1();

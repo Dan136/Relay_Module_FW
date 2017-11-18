@@ -2,7 +2,7 @@
 #include <task.h>
 #include <platform_stdlib.h>
 #include <semphr.h>
-#include "sensor_wifi.h"
+#include "relay_wifi.h"
 #include "wifi_constants.h"
 #include "wifi_structures.h"
 #include "lwip_netconf.h"
@@ -35,7 +35,7 @@ static void wifi_socket_thread(void *param)
 	}
 }
 
-void start_sensor_wifi()
+void start_relay_wifi()
 {
 	connect_to_network();
 	wifiBufSem = xSemaphoreCreateMutex(); // initialize semaphore

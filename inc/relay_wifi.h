@@ -5,7 +5,7 @@
 #include <semphr.h>
 
 void example_socket_tcp_trx_1(void);
-void start_sensor_wifi(void);
+void start_relay_wifi(void);
 int connect_to_network(void);
 BaseType_t write_wifi_buffer(const char * dataStart);
 
