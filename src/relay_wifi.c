@@ -21,6 +21,9 @@ static SemaphoreHandle_t wifiBufSem = 0;
 static char wifiBuf[50];
 static char wifiBufSendFlag;
 
+//Stores state of switch
+static char swState[2] = {0};
+
 char* ssid;
 char* password;
 
@@ -97,8 +100,7 @@ BaseType_t write_wifi_buffer(const char * dataStart){
 #define SERVER_PORT     80
 #define LISTEN_QLEN     2
 
-static int tx_exit = 0;
-//static _Sema tcp_tx_rx_sema;
+static int tx_exit = 0, rx_exit = 0;
 static _sema tcp_tx_rx_sema;
 
 static void tx_thread(void *param)
@@ -108,18 +110,8 @@ static void tx_thread(void *param)
 	while(1) {
 		int ret = 0;
 
-		//RtlDownSema(&tcp_tx_rx_sema);
 		rtw_down_sema(&tcp_tx_rx_sema);
-		if(wifiBufSem){ // only run with initialized semaphore
-			if(xSemaphoreTake(wifiBufSem, 0) == pdPASS){ // send data and return semaphore if semaphore was taken
-				if(wifiBufSendFlag){
-					ret = send(client_fd, wifiBuf, strlen(wifiBuf), 0);
-				}
-				xSemaphoreGive(wifiBufSem);
-			}
-		}
-
-		//RtlUpSema(&tcp_tx_rx_sema);
+		ret = send(client_fd, swState, 2, 0);
 		rtw_up_sema(&tcp_tx_rx_sema);
 		if(ret <= 0){
 			goto exit;
@@ -133,6 +125,35 @@ exit:
 	vTaskDelete(NULL);
 }
 
+static void rx_thread(void *param)
+{
+	int client_fd = * (int *) param;
+	unsigned char buffer[128];
+	printf("\n%s start\n", __FUNCTION__);
+
+	while(1) {
+		int ret = 0, sock_err = 0;
+		size_t err_len = sizeof(sock_err);
+
+		rtw_down_sema(&tcp_tx_rx_sema);
+		ret = recv(client_fd, buffer, sizeof(buffer), MSG_DONTWAIT);
+		getsockopt(client_fd, SOL_SOCKET, SO_ERROR, &sock_err, &err_len);
+		rtw_up_sema(&tcp_tx_rx_sema);
+		//printf(buffer);
+		// ret == -1 and socket error == EAGAIN when no data received for nonblocking
+		if((ret == -1) && (sock_err == EAGAIN))
+			continue;
+		else if(ret <= 0)
+			goto exit;
+
+		vTaskDelay(1000);
+	}
+
+exit:
+	printf("\n%s exit\n", __FUNCTION__);
+	rx_exit = 1;
+	vTaskDelete(NULL);
+}
 
 
 static void example_socket_tcp_trx_thread(void *param)
@@ -166,7 +187,6 @@ static void example_socket_tcp_trx_thread(void *param)
 		if(client_fd >= 0) {
 			printf("EXAMPLE SOCKET OUTER LOOP");
 			tx_exit = 1;
-			//RtlInitSema(&tcp_tx_rx_sema, 1);
 			rtw_init_sema(&tcp_tx_rx_sema, 1);
 
 			if(xTaskCreate(tx_thread, ((const char*)"tx_thread"), 512, &client_fd, tskIDLE_PRIORITY + 1, NULL) != pdPASS)
@@ -174,10 +194,12 @@ static void example_socket_tcp_trx_thread(void *param)
 			else
 				tx_exit = 0;
 			vTaskDelay(10);
-
-			//if(xTaskCreate(rx_thread, ((const char*)"rx_thread"), 512, &client_fd, tskIDLE_PRIORITY + 1, NULL) != pdPASS)
-			//	printf("\n\r%s xTaskCreate(rx_thread) failed", __FUNCTION__);
-
+			rx_exit = 1;
+			if(xTaskCreate(rx_thread, ((const char*)"rx_thread"), 512, &client_fd, tskIDLE_PRIORITY + 1, NULL) != pdPASS)
+				printf("\n\r%s xTaskCreate(rx_thread) failed", __FUNCTION__);
+			else
+				rx_exit = 0;
+			vTaskDelay(10);
 			while(1) {
 				if(tx_exit) {
 					close(client_fd);
@@ -187,7 +209,6 @@ static void example_socket_tcp_trx_thread(void *param)
 					vTaskDelay(1000);
 			}
 			printf("\nExample: socket tx/rx place loop\n");
-			//RtlFreeSema(&tcp_tx_rx_sema);
 			rtw_free_sema(&tcp_tx_rx_sema);
 		}
 	}
