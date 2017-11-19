@@ -139,7 +139,7 @@ static void rx_thread(void *param)
 		ret = recv(client_fd, buffer, sizeof(buffer), MSG_DONTWAIT);
 		getsockopt(client_fd, SOL_SOCKET, SO_ERROR, &sock_err, &err_len);
 		rtw_up_sema(&tcp_tx_rx_sema);
-		//printf(buffer);
+		printf(buffer);
 		// ret == -1 and socket error == EAGAIN when no data received for nonblocking
 		if((ret == -1) && (sock_err == EAGAIN))
 			continue;
@@ -147,6 +147,7 @@ static void rx_thread(void *param)
 			goto exit;
 
 		vTaskDelay(1000);
+
 	}
 
 exit:
