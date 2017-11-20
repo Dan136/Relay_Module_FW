@@ -16,6 +16,9 @@
 #include "gpio_api.h"
 
 #define GPIO_LED_PIN       PC_3
+#define GPIO_RELAY_PIN       PC_1
+#define RBUFSIZE	17
+#define GPIO_SWITCH_PIN    PC_4
 
 static SemaphoreHandle_t wifiBufSem = 0;
 static char wifiBuf[50];
@@ -26,6 +29,9 @@ static char swState[2] = {0};
 
 char* ssid;
 char* password;
+
+static gpio_t gpio_relay;
+static gpio_t gpio_switch;
 
 static void wifi_socket_thread(void *param)
 {
@@ -40,6 +46,15 @@ static void wifi_socket_thread(void *param)
 
 void start_relay_wifi()
 {
+	gpio_init(&gpio_relay, GPIO_RELAY_PIN);
+	gpio_dir(&gpio_relay, PIN_OUTPUT);    // Direction: Output
+	gpio_mode(&gpio_relay, PullNone);     // No pull
+	gpio_write(&gpio_relay, 0);
+
+	gpio_init(&gpio_switch, GPIO_SWITCH_PIN);
+	gpio_dir(&gpio_switch, PIN_INPUT);     // Direction: Input
+	gpio_mode(&gpio_switch, PullUp);       // Pull-High
+
 	connect_to_network();
 	wifiBufSem = xSemaphoreCreateMutex(); // initialize semaphore
 	if(xTaskCreate(wifi_socket_thread, ((const char*)"WiFi Socket Thread"), 2048, NULL, tskIDLE_PRIORITY + 1, NULL) != pdPASS)
@@ -128,18 +143,38 @@ exit:
 static void rx_thread(void *param)
 {
 	int client_fd = * (int *) param;
-	unsigned char buffer[17] = {'\0'};
+	unsigned char buffer[RBUFSIZE] = {'\0'};
 	printf("\n%s start\n", __FUNCTION__);
-
+	gpio_write(&gpio_relay, 1);
 	while(1) {
 		int ret = 0, sock_err = 0;
 		size_t err_len = sizeof(sock_err);
-
+		swState[1] = gpio_read(&gpio_switch);
 		rtw_down_sema(&tcp_tx_rx_sema);
 		ret = recv(client_fd, buffer, 16, MSG_DONTWAIT);
 		getsockopt(client_fd, SOL_SOCKET, SO_ERROR, &sock_err, &err_len);
 		rtw_up_sema(&tcp_tx_rx_sema);
-		printf("Received: %s\n", buffer);
+		if (swState[1] != gpio_read(&gpio_switch))
+		{
+			swState[1] ^= 1; // toggle state
+			swState[0] ^= 1;
+			gpio_write(&gpio_relay, swState[1]);
+		}
+		if (buffer[0] == 'o')
+		{
+			swState[0] = 1;
+			gpio_write(&gpio_relay, swState[0]);
+		}
+		else if (buffer[0] == 'f')
+		{
+			swState[0] = 0;
+			gpio_write(&gpio_relay, swState[0]);
+		}
+		if (buffer[0])
+		{
+			printf("Received: %s\n", buffer);
+			memset(&buffer[0], 0, RBUFSIZE);
+		}
 		vTaskDelay(1000);
 		// ret == -1 and socket error == EAGAIN when no data received for nonblocking
 		if((ret == -1) && (sock_err == EAGAIN))
