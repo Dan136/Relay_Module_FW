@@ -128,7 +128,7 @@ exit:
 static void rx_thread(void *param)
 {
 	int client_fd = * (int *) param;
-	unsigned char buffer[16];
+	unsigned char buffer[17] = {'\0'};
 	printf("\n%s start\n", __FUNCTION__);
 
 	while(1) {
@@ -136,24 +136,16 @@ static void rx_thread(void *param)
 		size_t err_len = sizeof(sock_err);
 
 		rtw_down_sema(&tcp_tx_rx_sema);
-		ret = recv(client_fd, buffer, sizeof(buffer), MSG_DONTWAIT);
+		ret = recv(client_fd, buffer, 16, MSG_DONTWAIT);
 		getsockopt(client_fd, SOL_SOCKET, SO_ERROR, &sock_err, &err_len);
 		rtw_up_sema(&tcp_tx_rx_sema);
-		printf("Received: ");
-		for (int i=0; i<15; i++)
-		{
-			printf(buffer[i]);
-		}
-		printf("\n");
+		printf("Received: %s\n", buffer);
 		vTaskDelay(1000);
 		// ret == -1 and socket error == EAGAIN when no data received for nonblocking
 		if((ret == -1) && (sock_err == EAGAIN))
 			continue;
 		else if(ret <= 0)
 			goto exit;
-
-
-
 	}
 
 exit:
@@ -208,7 +200,7 @@ static void example_socket_tcp_trx_thread(void *param)
 				rx_exit = 0;
 			vTaskDelay(10);
 			while(1) {
-				if(tx_exit) {
+				if(tx_exit && rx_exit) {
 					close(client_fd);
 					break;
 				}
