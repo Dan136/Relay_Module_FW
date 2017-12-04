@@ -53,8 +53,9 @@ void start_relay_wifi()
 
 	gpio_init(&gpio_switch, GPIO_SWITCH_PIN);
 	gpio_dir(&gpio_switch, PIN_INPUT);     // Direction: Input
-	gpio_mode(&gpio_switch, PullUp);       // Pull-High
+	gpio_mode(&gpio_switch, PullNone);       // Pull-Down is external
 
+	vTaskDelay(2000); //I think this might be an alternative to for loop in sensor module
 	connect_to_network();
 	wifiBufSem = xSemaphoreCreateMutex(); // initialize semaphore
 	if(xTaskCreate(wifi_socket_thread, ((const char*)"WiFi Socket Thread"), 2048, NULL, tskIDLE_PRIORITY + 1, NULL) != pdPASS)
