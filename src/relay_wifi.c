@@ -150,7 +150,6 @@ static void rx_thread(void *param)
 	while(1) {
 		int ret = 0, sock_err = 0;
 		size_t err_len = sizeof(sock_err);
-		swState[1] = gpio_read(&gpio_switch);
 		rtw_down_sema(&tcp_tx_rx_sema);
 		ret = recv(client_fd, buffer, 16, MSG_DONTWAIT);
 		getsockopt(client_fd, SOL_SOCKET, SO_ERROR, &sock_err, &err_len);
@@ -159,7 +158,7 @@ static void rx_thread(void *param)
 		{
 			swState[1] ^= 1; // toggle state
 			swState[0] ^= 1;
-			gpio_write(&gpio_relay, swState[1]);
+			gpio_write(&gpio_relay, swState[0]);
 		}
 		if (buffer[0] == 'o')
 		{

@@ -74,7 +74,6 @@ INCLUDES += -I$(AMEBA_SDK_LOC)/component/common/network/lwip/lwip_v1.4.1/src/inc
 INCLUDES += -I$(AMEBA_SDK_LOC)/component/common/network/lwip/lwip_v1.4.1/src/include/lwip
 INCLUDES += -I$(AMEBA_SDK_LOC)/component/common/network/lwip/lwip_v1.4.1/src/include/ipv4
 INCLUDES += -I$(AMEBA_SDK_LOC)/component/common/network/lwip/lwip_v1.4.1/port/realtek
-INCLUDES += -I$(AMEBA_SDK_LOC)/component/common/network/httpc
 INCLUDES += -I$(AMEBA_SDK_LOC)/component/common/test
 INCLUDES += -I$(AMEBA_SDK_LOC)/component/soc/realtek/8195a/cmsis
 INCLUDES += -I$(AMEBA_SDK_LOC)/component/soc/realtek/8195a/cmsis/device
@@ -184,8 +183,6 @@ SRC_C += $(AMEBA_SDK_LOC)/component/common/network/lwip/lwip_v1.4.1/port/realtek
 SRC_C += $(AMEBA_SDK_LOC)/component/common/network/dhcp/dhcps.c
 SRC_C += $(AMEBA_SDK_LOC)/component/common/network/sntp/sntp.c
 
-#network - httpc
-SRC_C += $(AMEBA_SDK_LOC)/component/common/network/httpc/httpc_tls.c
 
 #network - mdns
 SRC_C += $(AMEBA_SDK_LOC)/component/common/network/mDNS/mDNSPlatform.c

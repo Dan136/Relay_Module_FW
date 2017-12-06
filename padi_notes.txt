@@ -1,0 +1,8 @@
+
+Our network:
+AP : 1,WLAN_Test,6,WPA2 AES,-44,00:90:a9:13:2f:1b
+
+Set Jlink:
+make setup GDB_SERVER=jlink
+
+JLinkGDBServer -device cortex-m3 -if swd
